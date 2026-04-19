@@ -1,36 +1,50 @@
-# This is a basic workflow to help you get started with Actions
+name: Submit Commit
 
-name: CI
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+  submit:
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
-
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: Send valid commit
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          set -euo pipefail
+
+          # Extract commits from push event
+          if ! commits=$(jq -c '.commits[]' "$GITHUB_EVENT_PATH"); then
+            echo "No commits found"
+            exit 0
+          fi
+
+          for commit in $commits; do
+            ts=$(jq -r '.timestamp' <<<"$commit")
+
+            # Extract minute
+            minute=$(date -u -d "$ts" +%M)
+            minute=$((10#$minute))
+
+            # Only first 10 minutes
+            if [ "$minute" -lt 10 ]; then
+              echo "Valid commit found → sending to server"
+
+              curl --retry 5 --retry-delay 5 -X POST https://gitworkshop-2.onrender.com/submit \
+                -H "Content-Type: application/json" \
+                -d "{
+                  \"user\": \"${GITHUB_ACTOR}\",
+                  \"repo\": \"${GITHUB_REPOSITORY}\",
+                  \"commit\": \"$(jq -r '.id' <<<"$commit")\",
+                  \"timestamp\": \"${ts}\"
+                }"
+
+              exit 0
+            fi
+          done
+
+          echo "No valid commits in first 10 minutes"
