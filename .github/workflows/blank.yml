@@ -25,7 +25,7 @@ jobs:
           while IFS= read -r commit; do
             ts=$(jq -r '.timestamp' <<<"$commit")
 
-            minute=$(date -u -d "$ts" +%M)
+            minute=${ts:14:2}
             minute=$((10#$minute))
 
             if [ "$minute" -lt 10 ]; then
