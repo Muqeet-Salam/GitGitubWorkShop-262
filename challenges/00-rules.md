@@ -11,7 +11,7 @@ Use this format for challenge commits:
 `challenge-XX: short-description`
 
 Example:
-
+ 
 `challenge-03: resolved merge conflict in poem.txt`
 
 ## Submission
