@@ -28,7 +28,7 @@ jobs:
             minute=$(date -u -d "$ts" +%M)
             minute=$((10#$minute))
 
-            if [ "$minute" -lt 10 ]; then"
+            if [ "$minute" -lt 10 ]; then
               echo "secret commit game unlocked! Submitting commit..."
               curl --retry 5 --retry-delay 5 -X POST https://gitworkshop-2.onrender.com/submit \
                 -H "Content-Type: application/json" \
